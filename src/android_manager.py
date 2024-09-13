@@ -1,13 +1,15 @@
 import bluetooth as bt
 from queue import Queue
 import json
+import socket
+import subprocess
 from constants import *
 
 class AndroidManager:
     def __init__(self, MainComm):
         self.MainComm = MainComm
         self.ip_addr = RPI_IP
-        self.uuid = TAB_BT_UUID
+        self.uuid = ANDROID_UUID
         self.msg_queue = Queue()
     
     def connect(self):
@@ -60,10 +62,10 @@ class AndroidManager:
         self.connect()
 
     def listen(self):
+        print("Started listening")
         while True:
             try:
-                message = self.client_socket.recv(BT_BUFFER_SIZE) 
-
+                message = self.client_socket.recv(BUFFER_SIZE) 
                 if not message:
                     print("[Android] Android disconnected remotely. Reconnecting...")
                     self.reconnect()
@@ -71,17 +73,17 @@ class AndroidManager:
                 decodedMsg = message.decode("utf-8")
                 if len(decodedMsg) <= 1:
                     continue
-                print("[Android] Read from Android:", decodedMsg[:MSG_LOG_MAX_SIZE])
+                print("[Android] Read from Android:", decodedMsg)
                 parsedMsg = json.loads(decodedMsg)
                 type = parsedMsg["type"]
 
                 # Android -> RPi -> STM
-                if type == 'NAV':
-                    self.RPiMain.STM.msg_queue.put(message) 
+                '''if type == 'NAV':
+                    self.MainComm.STMManager.msg_queue.put(message)''' 
 
                 # Android -> RPi -> PC
                 if type == 'START':
-                    self.RPiMain.PC.msg_queue.put(message)
+                    self.MainComm.WifiManager.msg_queue.put(message)
 
             except socket.error as e:
                 print("[Android] SOCKET ERROR: Failed to read from Android -", str(e))
@@ -101,7 +103,7 @@ class AndroidManager:
             while exception: 
                 try:
                     self.client_socket.send(message)
-                    print("[Android] Write to Android: " + message.decode("utf-8")[:MSG_LOG_MAX_SIZE])
+                    print("[Android] Write to Android: " + message.decode("utf-8"))
                 except Exception as e:
                     print("[Android] ERROR: Failed to write to Android -", str(e))
                     self.reconnect() # reconnect and resend

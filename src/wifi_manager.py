@@ -1,13 +1,13 @@
 from queue import Queue
 import socket
 import json
-import sys
+from constants import *
 
 class WifiManager:
     def __init__(self, MainComm):
         self.MainComm = MainComm
         self.ip_addr = RPI_IP
-        self.port = PORT
+        self.port = WIFI_PORT
         self.socket = None
         self.msg_queue = Queue()
     
@@ -17,7 +17,7 @@ class WifiManager:
             serverSocket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
             serverSocket.bind((self.ip_addr, self.port))
             serverSocket.listen(128)
-            self.socket, self.pc_addr = sock.accept()
+            self.socket, self.pc_addr = serverSocket.accept()
         except socket.error as e:
             print("PC failed to connect ", str(e))
         else:
@@ -33,7 +33,7 @@ class WifiManager:
     def listen(self):
         while True:
             try:
-                msg = self.socket.recv(PC_MSG_SIZE)
+                msg = self.socket.recv(BUFFER_SIZE)
                 if not msg:
                     print("PC disconnected, reconnecting")
                     self.reconnect()
@@ -46,11 +46,11 @@ class WifiManager:
                 pc_request = json.loads(utfmsg)
                 request_type = pc_request["type"]
 
-                if request_type == "NAV":
+                '''if request_type == "NAV":
                     #send to STM
-                    self.MainComm.STMManager.msg_queue.put(msg)
+                    self.MainComm.STMManager.msg_queue.put(msg)'''
                 
-                elif request_type == "IMAGE":
+                if request_type == "IMAGE":
                     #send to Android
                     self.MainComm.AndroidManager.msg_queue.put(msg)
                 
